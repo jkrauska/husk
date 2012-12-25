@@ -26,6 +26,7 @@ import optparse # argparse is preferred for 2.7 on, but optparse is used for bac
 import subprocess # running commands
 import shlex  # supposedly good for escaping command lines
 import smtplib # for sending email -- just using localhost, but could use a valid SMTP relay
+import socket # just for hostname
 
 human=False
 
@@ -129,10 +130,17 @@ def main():
         doptions=options.__dict__
 
         # Craft an email body
-        doptions['Body']="""ERROR:\n%s""" % (
-            output['stderror'])
-        doptions['Body']="""ERROR:\n%s""" % (
-            output['stderror'])
+        doptions['Body']="""Error Running: %s\nHost:%s\nExit Code:%s\n%s""" % (
+            args[0],
+            socket.gethostname(),
+            output['exitcode'],
+            output['stderror'],
+            )
+
+        doptions['Subject']="""Error Running "%s" on %s""" % (
+            args[0],
+            socket.gethostname(),
+            )
 
 
         sendEmail(**doptions )
