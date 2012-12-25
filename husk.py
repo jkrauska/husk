@@ -66,7 +66,9 @@ def sendEmail( **kwargs ):
 
     # Send email out localhost
     server = smtplib.SMTP('localhost')
-    server.sendmail(options['From'], options['To'], fullBody)
+    server.sendmail(options['FROM_ADDRESS'], 
+                    options['TO_ADDRESS'], 
+                    fullBody)
     server.quit()
 
 
