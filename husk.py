@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
 """
+Cron Husk Wrapper
+
 Simple wrapper for cron scripts to make cron emails more user friendly.
 
 Problem to solve:
@@ -25,6 +27,7 @@ import subprocess # running commands
 import shlex  # supposedly good for escaping command lines
 import smtplib # for sending email -- just using localhost, but could use a valid SMTP relay
 
+human=False
 
 # subprocess wrapper 
 # FIXME: Haven't ever found an elegant way to merge STDIN and STDOUT while also keeping isolated copies
@@ -49,8 +52,7 @@ def runCommand(cmd):
 def sendEmail( **kwargs ):
     # Set defaults
     options = {
-            'Subject' : 'Husk Cron Wrapper Email With Unconfigured Subject', 
-            'Body'    : 'Sample email from Husk Cron Wrapper.',
+            'Subject' : 'Cron Husk Wrapper Email With Default Subject', 
             }
 
     # merge kwargs and defaults
@@ -62,7 +64,8 @@ def sendEmail( **kwargs ):
                                                               options['Subject'],
                                                               options['Body'],)
 
-    print 'SendEmail DEBUG', options
+    if human:
+        print 'EMAIL DEBUG', options
 
     # Send email out localhost
     server = smtplib.SMTP('localhost')
@@ -73,16 +76,20 @@ def sendEmail( **kwargs ):
 
 
 
+# Helper callback to convert TO be a list
+def toList_callback(option, opt, value, parser):
+  setattr(parser.values, option.dest, value.split(','))
+
 
 def main():
     # Check to see if we're running from commandline
+    global human
     if sys.stdout.isatty(): human=True
 
 
     # TODO 
     # -- write optparsers
     # -- code logic
-    # if exitcode != 1 -- email
     # if warn or error in output -- email
 
     parser = optparse.OptionParser(usage="usage: %prog [options] \"command\"",
@@ -90,35 +97,46 @@ def main():
     parser.add_option("-f", "--from",
                       action="store",
                       dest="FROM_ADDRESS",
-                      default="Husk Cron Wrapper <husk@example.com>",
+                      default="Cron Husk Wrapper <husk@example.com>",
                       help="set email From address")
     parser.add_option("-t", "--to",
-                      action="store",
+                      type='string',
+                      action="callback",
+                      callback=toList_callback,
                       dest="TO_ADDRESS",
-                      default="husk@example.com",
-                      help="set email To address")
+                      default="husk@example.com,husk1@example.com",
+                      help="command seperated list of email destinations")
 
 
     (options, args) = parser.parse_args()
 
-    print 'OPTIONS', options
+
 
     if len(args) != 1:
         parser.error("Command not specified")
 
     # TESTING
-    print '-'*80
     output=runCommand(args[0])
-    print 'OUTPUT:', output
+
+    if human: 
+        print 'DEBUG OPTIONS', options
+        print 'DEBUG OUTPUT:', output
 
 
     # Check for Conditions warranting email
     if output['exitcode'] != 0:
         # Must convert options to a dictionary
-        sendEmail(**options.__dict__)
-        
+        doptions=options.__dict__
 
-    print '-'*80
+        # Craft an email body
+        doptions['Body']="""ERROR:\n%s""" % (
+            output['stderror'])
+        doptions['Body']="""ERROR:\n%s""" % (
+            output['stderror'])
+
+
+        sendEmail(**doptions )
+        
 
 
 # Boilerplate to allow for external import
