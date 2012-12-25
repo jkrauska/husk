@@ -49,8 +49,6 @@ def runCommand(cmd):
 def sendEmail( **kwargs ):
     # Set defaults
     options = {
-            'From'    : 'Husk Cron Wrapper <husk@example.com>',
-            'To'      : ['jkrauska@gmail.com'],
             'Subject' : 'Husk Cron Wrapper Email With Unconfigured Subject', 
             'Body'    : 'Sample email from Husk Cron Wrapper.',
             }
@@ -59,8 +57,8 @@ def sendEmail( **kwargs ):
     options.update(kwargs)
 
     # Reform Body of message with all proper headers
-    fullBody="From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n%s" % (options['From'],
-                                                              ", ".join(options['To']), 
+    fullBody="From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n%s" % (options['FROM_ADDRESS'],
+                                                              ", ".join(options['TO_ADDRESS']), 
                                                               options['Subject'],
                                                               options['Body'],)
 
@@ -85,14 +83,40 @@ def main():
     # if exitcode != 1 -- email
     # if warn or error in output -- email
 
+    parser = optparse.OptionParser(usage="usage: %prog [options] \"command\"",
+                          version="%prog 1.0")
+    parser.add_option("-f", "--from",
+                      action="store",
+                      dest="FROM_ADDRESS",
+                      default="Husk Cron Wrapper <husk@example.com>",
+                      help="set email From address")
+    parser.add_option("-t", "--to",
+                      action="store",
+                      dest="TO_ADDRESS",
+                      default="husk@example.com",
+                      help="set email To address")
+
+
+    (options, args) = parser.parse_args()
+
+    print 'OPTIONS', options
+
+    if len(args) != 1:
+        parser.error("Command not specified")
+
     # TESTING
     print '-'*80
-    print runCommand('ls')
-    print '-'*80
-    print runCommand('ls /too')
+    output=runCommand(args[0])
+    print 'OUTPUT:', output
+
+
+    # Check for Conditions warranting email
+    if output['exitcode'] != 0:
+        # Must convert options to a dictionary
+        sendEmail(**options.__dict__)
+        
 
     print '-'*80
-    print runCommand('laasds /too')
 
 
 # Boilerplate to allow for external import
